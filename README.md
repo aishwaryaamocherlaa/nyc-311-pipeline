@@ -1,5 +1,7 @@
 # NYC 311 Public Works Data Pipeline
 
+*Author: Aishwarya Mocherla — submitted for Genaiology data engineering assessment*
+
 An end-to-end data engineering project that ingests, transforms, and serves
 NYC 311 Service Request data using a Medallion Architecture (Bronze → Silver
 →Gold), with a final interactive HTML dashboard for municipal leaders.

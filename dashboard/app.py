@@ -1,6 +1,8 @@
 """
 NYC 311 Dashboard - Flask Server
 =================================
+Author: Aishwarya Mocherla
+
 Serves an interactive HTML dashboard backed by the PostgreSQL `nyc_311`
 database. Exposes one JSON endpoint per chart
 
