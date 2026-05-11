@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NYC 311 Public Works Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>NYC 311 Public Works Dashboard</h1>
+    <p class="sub">Service efficiency &amp; infrastructure bottleneck monitor &middot; April 2026 onwards</p>
+  </header>
+
+  <section class="filter-bar">
+    <div class="filter">
+      <label>Council District</label>
+      <select id="filter-district" multiple size="4"></select>
+      <small>Ctrl/Cmd-click to select multiple. Empty = all.</small>
+    </div>
+    <div class="filter">
+      <label>Complaint Type</label>
+      <select id="filter-complaint" multiple size="4"></select>
+      <small>Empty = all.</small>
+    </div>
+    <div class="filter">
+      <label>Date From</label>
+      <input type="date" id="filter-date-from">
+    </div>
+    <div class="filter">
+      <label>Date To</label>
+      <input type="date" id="filter-date-to">
+    </div>
+    <div class="filter">
+      <button id="btn-apply">Apply Filters</button>
+      <button id="btn-clear">Clear</button>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi"><div class="kpi-label">Total Volume</div><div class="kpi-value" id="kpi-volume">—</div></div>
+    <div class="kpi"><div class="kpi-label">Closure Rate</div><div class="kpi-value" id="kpi-closure">—</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Resolution (hrs)</div><div class="kpi-value" id="kpi-resolution">—</div></div>
+    <div class="kpi"><div class="kpi-label">Aging Open (>7d)</div><div class="kpi-value" id="kpi-overdue">—</div></div>
+  </section>
+
+  <section class="row">
+    <div class="panel wide">
+      <h2>District Density Map · Spatial</h2>
+      <p class="desc">Each bubble is a council district. Size = total volume, color = avg resolution time. Hover for details.</p>
+      <div id="chart-map" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Daily Volume Trend · Temporal</h2>
+      <p class="desc">Daily service request counts over the selected window. Spot peak demand periods.</p>
+      <div id="chart-g4" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>Hour × Weekday Heatmap · Temporal</h2>
+      <p class="desc">Volume by hour-of-day × day-of-week. Darker cells signal peak demand windows for staffing.</p>
+      <div id="chart-g7" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>District Performance · Categorical</h2>
+      <p class="desc">Top districts by complaint volume. Hover for average resolution time per district.</p>
+      <div id="chart-g1" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>Bottleneck Districts · Categorical</h2>
+      <p class="desc">Open-to-closed ratio per district. Red bars exceed the citywide average (blue dashed line).</p>
+      <div id="chart-g5" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Top Complaint Types · Categorical</h2>
+      <p class="desc">Most frequent complaint categories citywide. The headline volumes the city responds to.</p>
+      <div id="chart-g2" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>Hotspot ZIPs by Complaint · Categorical</h2>
+      <p class="desc">Highest-volume ZIP codes per complaint type. Sub-district pinpointing for targeted response.</p>
+      <div id="chart-g9" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Agency Volume &amp; Closure Rate · Categorical</h2>
+      <p class="desc">Bars = volume handled. Green dots = closure rate. Comparing workload vs. throughput.</p>
+      <div id="chart-g3" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>SLA Compliance by Agency · Categorical</h2>
+      <p class="desc">% of closed cases resolved within the agency's own due-date target. Higher is better.</p>
+      <div id="chart-g6" class="chart"></div>
+      <small class="note">Note: covers only agencies that populate due_date.</small>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Open Backlog Aging · Categorical</h2>
+      <p class="desc">How long currently-open tickets have been waiting. Older buckets mean longer-festering issues.</p>
+      <div id="chart-g10" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h2>Channel Mix by District · Categorical</h2>
+      <p class="desc">How citizens in each district report issues (phone / online / mobile). Surfaces app-adoption gaps.</p>
+      <div id="chart-g8" class="chart"></div>
+    </div>
+  </section>
+
+  <footer>
+    <small>Source: NYC Open Data 311 Service Requests &middot; Pipeline: Bronze → Silver (partitioned Parquet) → Gold → PostgreSQL</small>
+  </footer>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>
