@@ -1,10 +1,28 @@
 """
-NYC 311 Dashboard — Flask Server
+NYC 311 Dashboard - Flask Server
 =================================
 Serves an interactive HTML dashboard backed by the PostgreSQL `nyc_311`
-database. Exposes one JSON endpoint per chart; each endpoint accepts the
-three required filters (districts, complaint type, time horizon) as query
-parameters and returns filtered data.
+database. Exposes one JSON endpoint per chart
+
+Caters to: 
+Phase 4: Serving & Presentation Layer
+Load your Gold layer aggregations into a local PostgreSQL instance to serve as the
+backend for your visualization.
+Interactive HTML Dashboard:
+Build an interactive HTML dashboard that communicates the insights derived from the
+database. This should not be a collection of static charts.
+• Dynamic Interactivity: The dashboard must respond to user input. If a user
+changes a parameter, the visualizations must update to represent that specific
+slice of data.
+• Required Filter Elements:
+o By Council District: Filter all charts to show data for one or multiple
+specific districts.
+o By Complaint Type: Drill down into specific issues (e.g., "Potholes" vs.
+"Illegal Dumping").
+o By Time Horizon: Adjust the view based on the creation date of the
+requests
+• Visual Elements: Include a mix of spatial, categorical, and temporal charts (e.g.,
+maps, bar charts, and time-series graphs).
 """
 
 import os
@@ -52,19 +70,13 @@ def fetch(sql: str, params: dict = None):
         return [dict(row._mapping) for row in result]
 
 
-# ----------------------------------------------------------------------------
-# Routes — page
-# ----------------------------------------------------------------------------
-
 @app.route("/")
 def index():
     """Serve the dashboard HTML page."""
     return render_template("index.html")
 
 
-# ----------------------------------------------------------------------------
-# Routes — filter option endpoints
-# ----------------------------------------------------------------------------
+
 
 @app.route("/api/options")
 def options():
@@ -89,9 +101,6 @@ def options():
     })
 
 
-# ----------------------------------------------------------------------------
-# Routes — chart data endpoints
-# ----------------------------------------------------------------------------
 
 @app.route("/api/kpi")
 def kpi():
@@ -127,7 +136,7 @@ def kpi():
 
 @app.route("/api/g11_map")
 def g11_map():
-    """G11 — district bubbles for the spatial map."""
+    """G11 - district bubbles for the spatial map."""
     f = parse_filters()
     where = []
     params = {}
@@ -145,7 +154,7 @@ def g11_map():
 
 @app.route("/api/g4_temporal")
 def g4_temporal():
-    """G4 — daily volume time series. Filtered by date range."""
+    """G4 - daily volume time series. Filtered by date range."""
     f = parse_filters()
     where = []
     params = {}
@@ -166,7 +175,7 @@ def g4_temporal():
 
 @app.route("/api/g7_heatmap")
 def g7_heatmap():
-    """G7 — hour x day-of-week heatmap. Not filterable (city-wide pattern)."""
+    """G7 - hour x day-of-week heatmap. Not filterable (city-wide pattern)."""
     return jsonify(fetch(
         'SELECT created_day_of_week, created_hour, volume '
         'FROM g7_hourly_heatmap ORDER BY created_day_of_week, created_hour'
@@ -175,7 +184,7 @@ def g7_heatmap():
 
 @app.route("/api/g1_districts")
 def g1_districts():
-    """G1 — district performance bar."""
+    """G1 - district performance bar."""
     f = parse_filters()
     where = []
     params = {}
@@ -194,7 +203,7 @@ def g1_districts():
 
 @app.route("/api/g5_bottleneck")
 def g5_bottleneck():
-    """G5 — bottleneck districts."""
+    """G5 - bottleneck districts."""
     f = parse_filters()
     where = []
     params = {}
@@ -213,7 +222,7 @@ def g5_bottleneck():
 
 @app.route("/api/g2_complaints")
 def g2_complaints():
-    """G2 — top complaint types citywide."""
+    """G2 - top complaint types citywide."""
     f = parse_filters()
     where = []
     params = {}
@@ -231,7 +240,7 @@ def g2_complaints():
 
 @app.route("/api/g9_hotspots")
 def g9_hotspots():
-    """G9 — top zips per complaint type."""
+    """G9 - top zips per complaint type."""
     f = parse_filters()
     where = []
     params = {}

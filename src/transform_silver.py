@@ -1,13 +1,11 @@
 """
 Silver Layer Transformation Script
-===================================
 Reads raw Bronze JSON files, cleans and validates the data, derives
 analytical fields, and writes partitioned Parquet to data/silver/.
 """
 
-# ============================================================================
 # IMPORTS
-# ============================================================================
+
 
 import os
 import json
@@ -20,53 +18,52 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-# CONFIGURATION
 
-# --- Paths ---
+# Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BRONZE_DIR = os.path.join(PROJECT_ROOT, "data", "bronze")
 SILVER_DIR = os.path.join(PROJECT_ROOT, "data", "silver")
 LOGS_DIR = os.path.join(PROJECT_ROOT, "logs")
 SILVER_MANIFEST_PATH = os.path.join(SILVER_DIR, "manifest.json")
 
-# --- Schema ---
+
 # REQUIREMENT: "Ensuring schema consistency and handling null values in
 # critical fields." Selected to support all required Gold aggregations,
-# all required dashboard filters/visuals, AND above-and-beyond analytical
-# additions (SLA compliance, hourly heatmap, hotspot detection,
+# all required dashboard filters/visuals, AND additional analytical
+# measures (SLA compliance, hourly heatmap, hotspot detection,
 # channel-mix analysis, backlog aging).
 COLUMNS_TO_KEEP = [
-    # --- Identity & timeline (critical) ---
+    # Identity & timeline (critical)
     "unique_key",
     "created_date",
     "closed_date",
     "due_date",                          # SLA / overdue flagging
     "resolution_action_updated_date",    # stale-ticket detection
 
-    # --- Who & what ---
+    # Who & what
     "agency",
     "agency_name",
     "complaint_type",
     "descriptor",
     "status",
 
-    # --- Where ---
+    # Where
     "borough",
     "council_district",
     "incident_zip",                      # sub-district granularity
     "latitude",
     "longitude",
 
-    # --- How submitted ---
+    # How submitted
     "open_data_channel_type",
 ]
 
 # REQUIREMENT: "Ensuring schema consistency and handling null values in
-# critical fields." these fields are structural skeleton; rows missing
+# critical fields." these fields are structural skeleton; rows with missing
 # these values cannot be analyzed and are dropped. (although, it doesnt look like there are any)
 CRITICAL_FIELDS = ["unique_key", "created_date"]
 
-# --- Partitioning ---
+# Partitioning
 # Best Practices with Parquet files: partition by the date portion of created_date (~40 daily
 # folders for 5.5 weeks of data). Daily granularity gives balanced partition
 # sizes (~10K rows each)

@@ -115,7 +115,7 @@ def build_g1_district_performance(df: pd.DataFrame) -> pd.DataFrame:
 # REQUIREMENT: "Complaint Distribution: A breakdown of the most frequent
 # complaint types citywide vs. district-specific trends."
 def build_g2_complaint_distribution(df: pd.DataFrame) -> pd.DataFrame:
-    """Top complaint types — total volume + per-district top counts."""
+    """Top complaint types - total volume + per-district top counts."""
     # Citywide totals
     citywide = (
         df.groupby("complaint_type", as_index=False)

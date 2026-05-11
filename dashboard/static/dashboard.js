@@ -209,7 +209,6 @@ async function renderG8() {
   }, { responsive: true });
 }
 
-// ----- Orchestrate -----
 async function renderAll() {
   await Promise.all([
     renderKPI(), renderMap(), renderG4(), renderG7(),

@@ -83,7 +83,7 @@ def ensure_database_exists(logger: logging.Logger) -> None:
             {"name": PG_DB},
         ).scalar()
         if exists:
-            logger.info(f"Database '{PG_DB}' already exists — reusing it")
+            logger.info(f"Database '{PG_DB}' already exists - reusing it")
         else:
             conn.execute(text(f'CREATE DATABASE "{PG_DB}"'))
             logger.info(f"Created database '{PG_DB}'")

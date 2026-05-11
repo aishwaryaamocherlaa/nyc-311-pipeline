@@ -1,9 +1,9 @@
 """
-Bronze Layer Ingestion Script
+Bronze Layer Ingestion
 
-ASSESMENT REQUIREMENTS — PHASE 1: DATA INGESTION (BRONZE LAYER)
+ASSESMENT REQUIREMENTS - PHASE 1: DATA INGESTION (BRONZE LAYER)
 
-This script fulfills the Phase 1 specification:
+This fulfills the Phase 1 specification:
 
 *
 Phase 1: Data Ingestion (Bronze Layer)
@@ -22,23 +22,23 @@ script must only fetch records created on or after April 1st, 2026.
 your "Bronze" data lake
 *
 
-EVALUATION CRITERIA — HOW THIS PART OF THE PROJECT ADDRESSES EACH
+EVALUATION CRITERIA - HOW THIS PART OF THE PROJECT ADDRESSES EACH
 
   Documentation Research
   Pipeline Architecture (Bronze / Silver / Gold separation)
     -> Bronze layer is fully self-contained in this file. Output
-       written to data/bronze/ — never to silver/ or gold/.
-    -> Manifest.json provides a clean contract for downstream Silver.
+       written to data/bronze/ and never to silver/ or gold/.
+    -> Manifest.json provides a clean summary metadata for downstream Silver.
     -> See: main() and write_manifest().
   Data Integrity
     -> Bronze fidelity: raw JSON stored exactly as returned by API
        (no schema enforcement, no transformation, no field drops).
     -> Pagination integrity: $order=created_date ASC, unique_key ASC
-       guarantees deterministic ordering — no overlaps, no gaps
+       guarantees deterministic ordering. no overlaps, no gaps
        between pages. Verified by tests/validate_bronze.py.
     -> Completeness check: manifest tracks total_records; the
        validator cross-checks against records persisted on disk.
-  Optimization (relevant to Phase 1)
+  Optimization (wherever relevant to Phase 1)
     -> Maximum page size (50,000) used to minimize round-trips.
     -> requests.Session reuses the underlying TCP connection across
        paginated calls.
@@ -123,24 +123,23 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 def fetch_page(session: requests.Session, offset: int, logger: logging.Logger) -> list:
-    # check: fail loudly if the token wasn't loaded.
     if not APP_TOKEN:
         raise RuntimeError(
             "APP_TOKEN not found. Make sure .env exists at the project root "
             "and contains a line like: APP_TOKEN=your_token_here"
         )
 
-# REQUIREMENT: "Programmatically ingest raw data using the SODA3 API with Python." — query parameters constructed below.
+# REQUIREMENT: "Programmatically ingest raw data using the SODA3 API with Python." - query parameters constructed below.
 
     params = {
         "$where": f"created_date >= '{CUTOFF_DATE}'",
-        "$order": "created_date ASC, unique_key ASC", # EVALUATION CRITERION: "Data Integrity" — deterministic ordering required for paginated reads to avoid duplicates or gaps between page boundaries.
+        "$order": "created_date ASC, unique_key ASC", # EVALUATION CRITERION: "Data Integrity" - deterministic ordering required for paginated reads to avoid duplicates or gaps between page boundaries.
         "$limit": PAGE_SIZE,
         "$offset": offset,
     }
 
 # EVALUATION CRITERION: "Pipeline Architecture: Evidence of a clear
-# separation of concerns" — App Token sent in request header rather than
+# separation of concerns" - App Token sent in request header rather than
 # URL parameter.
    
     headers = {"X-App-Token": APP_TOKEN}
@@ -295,10 +294,10 @@ def main():
         "page_files": page_filenames,
     }
 
-# MANIFEST WRITER
+# MANIFEST 
 # BEST PRACTICE: Auditing & Summary of data
 # Captures what was fetched, when, with what filter, and which files were produced.
-# So, anyone can reconstruct a part without re-running anything, Silver/Gold downstream consumers know exactly
+# So, anyone can reconstruct a part without re-running anything, Silver/Gold downstream developers know exactly
 # which Bronze run they processed and cross checking records on disk against the manifest's claims.
 
 def write_manifest(summary: dict, logger: logging.Logger) -> None:
