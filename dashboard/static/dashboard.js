@@ -66,14 +66,17 @@ async function renderKPI() {
 async function renderMap() {
   const d = await api("/api/g11_map");
   const trace = {
-    type: "scattermapbox", mode: "markers",
+    type: "scattermapbox",
+    mode: "markers",
     lat: d.map(r => r.avg_latitude),
     lon: d.map(r => r.avg_longitude),
     text: d.map(r =>
-      `District ${r.council_district}<br>` +
+      `<b>District ${r.council_district}</b><br>` +
+      `Area: ${r.primary_community_board}<br>` +
       `Volume: ${r.total_volume.toLocaleString()}<br>` +
       `Avg resolution: ${r.avg_resolution_hours} hrs<br>` +
-      `Top: ${r.top_complaint_type}`
+      `Closure rate: ${(r.closure_rate * 100).toFixed(1)}%<br>` +
+      `Top complaint: ${r.top_complaint_type}`
     ),
     hoverinfo: "text",
     marker: {
@@ -93,49 +96,122 @@ async function renderMap() {
 // ----- G4 Temporal -----
 async function renderG4() {
   const d = await api("/api/g4_temporal");
+  // Format created_date_partition as 'Apr 01' style — no time, no day name
+  const formatDate = (val) => {
+    const dt = new Date(val);
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const day = String(dt.getUTCDate()).padStart(2, "0");
+    return `${months[dt.getUTCMonth()]} ${day}`;
+  };
+  const xLabels = d.map(r => formatDate(r.created_date_partition));
+
   Plotly.newPlot("chart-g4", [{
-    x: d.map(r => r.created_date_partition),
+    x: xLabels,
     y: d.map(r => r.total_volume),
-    type: "scatter", mode: "lines+markers", name: "Volume",
+    type: "scatter",
+    mode: "lines+markers",
+    name: "Volume",
     line: { color: "#2563eb", width: 2 },
-  }], { ...layoutBase, xaxis: { title: "Date" }, yaxis: { title: "Daily Volume" } }, { responsive: true });
+    hovertemplate: "%{x}<br>Volume: %{y:,}<extra></extra>",
+  }], {
+    margin: { l: 60, r: 20, t: 20, b: 80 },
+    font: { size: 11 },
+    xaxis: {
+      title: { text: "Date", standoff: 40 },
+      tickangle: -45,
+      automargin: true,
+      type: "category",  // forces Plotly to treat labels as strings, not parse as dates
+    },
+    yaxis: { title: "Daily Volume", automargin: true },
+  }, { responsive: true });
 }
 
 // ----- G7 Heatmap -----
 async function renderG7() {
   const d = await api("/api/g7_heatmap");
-  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const hours = [...Array(24).keys()];
-  const z = days.map(day => hours.map(h => {
-    const row = d.find(r => r.created_day_of_week === day && r.created_hour === h);
-    return row ? row.volume : 0;
-  }));
+  const formatHour = (h) => {
+    if (h === 0) return "12 am";
+    if (h === 12) return "12 pm";
+    if (h < 12) return `${h} am`;
+    return `${h - 12} pm`;
+  };
+  const hourLabels = hours.map(formatHour);
+  const z = days.map(day =>
+    hours.map(h => {
+      const row = d.find(r => r.created_day_of_week === day && r.created_hour === h);
+      return row ? row.volume : 0;
+    })
+  );
   Plotly.newPlot("chart-g7", [{
-    z, x: hours, y: days, type: "heatmap", colorscale: "YlOrRd",
-  }], { ...layoutBase, xaxis: { title: "Hour of Day" }, yaxis: { title: "" } }, { responsive: true });
+    z,
+    x: hourLabels,
+    y: days,
+    type: "heatmap",
+    colorscale: "YlOrRd",
+    hovertemplate: "%{y} · %{x}<br>Volume: %{z:,}<extra></extra>",
+  }], {
+    margin: { l: 95, r: 30, t: 10, b: 100 },
+    font: { size: 11 },
+    xaxis: {
+      title: { text: "Hour of Day", standoff: 50 },
+      tickangle: -45,
+      automargin: true,
+    },
+    yaxis: { title: "", automargin: true },
+  }, { responsive: true });
 }
 
 // ----- G1 Districts -----
 async function renderG1() {
   const d = await api("/api/g1_districts");
   Plotly.newPlot("chart-g1", [{
-    x: d.map(r => "D" + r.council_district), y: d.map(r => r.total_volume),
-    type: "bar", marker: { color: "#0a2540" },
-    text: d.map(r => r.avg_resolution_hours + " hrs"), hovertemplate: "Volume: %{y}<br>Avg: %{text}",
-  }], { ...layoutBase, xaxis: { title: "Council District" }, yaxis: { title: "Volume" } }, { responsive: true });
+    x: d.map(r => "D" + r.council_district),
+    y: d.map(r => r.total_volume),
+    type: "bar",
+    marker: { color: "#0a2540" },
+    customdata: d.map(r => [r.council_district, r.primary_community_board, r.avg_resolution_hours, r.median_resolution_hours]),
+    hovertemplate:
+      "<b>Council District %{customdata[0]}</b><br>" +
+      "Area: %{customdata[1]}<br>" +
+      "Volume: %{y:,}<br>" +
+      "Avg resolution: %{customdata[2]} hrs<br>" +
+      "Median resolution: %{customdata[3]} hrs" +
+      "<extra></extra>",
+  }], {
+    ...layoutBase,
+    xaxis: { title: "Council District", tickangle: 0 },
+    yaxis: { title: "Volume" },
+  }, { responsive: true });
 }
 
 // ----- G5 Bottleneck -----
 async function renderG5() {
   const d = await api("/api/g5_bottleneck");
   Plotly.newPlot("chart-g5", [{
-    x: d.map(r => "D" + r.council_district), y: d.map(r => r.open_to_closed_ratio),
+    x: d.map(r => "D" + r.council_district),
+    y: d.map(r => r.open_to_closed_ratio),
     type: "bar",
     marker: { color: d.map(r => r.exceeds_citywide ? "#dc2626" : "#9ca3af") },
-    text: d.map(r => r.exceeds_citywide ? "↑ above avg" : ""), hovertemplate: "Ratio: %{y}<br>%{text}",
+    customdata: d.map(r => [r.council_district, r.primary_community_board, r.open_volume, r.closed_volume, r.citywide_ratio]),
+    hovertemplate:
+      "<b>Council District %{customdata[0]}</b><br>" +
+      "Area: %{customdata[1]}<br>" +
+      "Open: %{customdata[2]:,}<br>" +
+      "Closed: %{customdata[3]:,}<br>" +
+      "Ratio: %{y}<br>" +
+      "Citywide avg: %{customdata[4]}" +
+      "<extra></extra>",
   }], {
-    ...layoutBase, xaxis: { title: "Council District" }, yaxis: { title: "Open / Closed Ratio" },
-    shapes: d.length ? [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: d[0].citywide_ratio, y1: d[0].citywide_ratio, line: { color: "#2563eb", dash: "dash", width: 2 } }] : [],
+    ...layoutBase,
+    xaxis: { title: "Council District", tickangle: 0 },
+    yaxis: { title: "Open / Closed Ratio" },
+    shapes: d.length ? [{
+      type: "line", xref: "paper", x0: 0, x1: 1,
+      y0: d[0].citywide_ratio, y1: d[0].citywide_ratio,
+      line: { color: "#2563eb", dash: "dash", width: 2 },
+    }] : [],
   }, { responsive: true });
 }
 
@@ -162,13 +238,43 @@ async function renderG9() {
 async function renderG3() {
   const d = await api("/api/g3_agencies");
   Plotly.newPlot("chart-g3", [
-    { x: d.map(r => r.agency), y: d.map(r => r.total_volume), type: "bar", name: "Volume", marker: { color: "#0a2540" }, yaxis: "y" },
-    { x: d.map(r => r.agency), y: d.map(r => r.closure_rate * 100), type: "scatter", mode: "markers", name: "Closure %", marker: { color: "#10b981", size: 10 }, yaxis: "y2" },
+    {
+      x: d.map(r => r.agency),
+      y: d.map(r => r.total_volume),
+      type: "bar",
+      name: "Volume",
+      marker: { color: "#0a2540" },
+      yaxis: "y",
+      customdata: d.map(r => [r.agency_name, r.avg_resolution_hours]),
+      hovertemplate:
+        "<b>%{x}</b><br>" +
+        "%{customdata[0]}<br>" +
+        "Volume: %{y:,}<br>" +
+        "Avg resolution: %{customdata[1]} hrs" +
+        "<extra></extra>",
+    },
+    {
+      x: d.map(r => r.agency),
+      y: d.map(r => r.closure_rate * 100),
+      type: "scatter",
+      mode: "markers",
+      name: "Closure %",
+      marker: { color: "#10b981", size: 10 },
+      yaxis: "y2",
+      customdata: d.map(r => [r.agency_name]),
+      hovertemplate:
+        "<b>%{x}</b><br>" +
+        "%{customdata[0]}<br>" +
+        "Closure rate: %{y:.1f}%" +
+        "<extra></extra>",
+    },
   ], {
-    ...layoutBase,
-    yaxis: { title: "Volume" },
-    yaxis2: { title: "Closure %", overlaying: "y", side: "right", range: [0, 100] },
+    margin: { l: 60, r: 60, t: 30, b: 50 },
+    font: { size: 11 },
+    yaxis: { title: "Volume", automargin: true },
+    yaxis2: { title: "Closure %", overlaying: "y", side: "right", range: [0, 100], automargin: true },
     legend: { x: 0, y: 1.15, orientation: "h" },
+    xaxis: { title: "Agency", tickangle: 0 },
   }, { responsive: true });
 }
 
@@ -176,9 +282,22 @@ async function renderG3() {
 async function renderG6() {
   const d = await api("/api/g6_sla");
   Plotly.newPlot("chart-g6", [{
-    x: d.map(r => r.agency), y: d.map(r => r.sla_compliance_pct),
-    type: "bar", marker: { color: "#10b981" },
-  }], { ...layoutBase, yaxis: { title: "SLA compliance %", range: [0, 100] } }, { responsive: true });
+    x: d.map(r => r.agency),
+    y: d.map(r => r.sla_compliance_pct),
+    type: "bar",
+    marker: { color: "#10b981" },
+    customdata: d.map(r => [r.agency_name, r.closed_with_sla, r.within_sla_count]),
+    hovertemplate:
+      "<b>%{x}</b><br>" +
+      "%{customdata[0]}<br>" +
+      "Within SLA: %{customdata[2]:,} of %{customdata[1]:,}<br>" +
+      "Compliance: %{y:.2f}%" +
+      "<extra></extra>",
+  }], {
+    ...layoutBase,
+    yaxis: { title: "SLA compliance %", range: [0, 100] },
+    xaxis: { title: "Agency" },
+  }, { responsive: true });
 }
 
 // ----- G10 Aging -----
@@ -193,7 +312,9 @@ async function renderG10() {
 // ----- G8 Channels -----
 async function renderG8() {
   const d = await api("/api/g8_channels");
-  const districts = [...new Set(d.map(r => r.council_district))].sort((a,b)=>a-b);
+  const districts = [...new Set(d.map(r => r.council_district))].sort((a, b) => a - b);
+  const districtAreaLookup = {};
+  d.forEach(r => { districtAreaLookup[r.council_district] = r.primary_community_board; });
   const channels = [...new Set(d.map(r => r.open_data_channel_type))];
   const traces = channels.map(ch => ({
     x: districts.map(dist => "D" + dist),
@@ -201,10 +322,25 @@ async function renderG8() {
       const row = d.find(r => r.council_district === dist && r.open_data_channel_type === ch);
       return row ? row.volume : 0;
     }),
-    name: ch, type: "bar",
+    name: ch,
+    type: "bar",
+    customdata: districts.map(dist => [dist, districtAreaLookup[dist] || ""]),
+    hovertemplate:
+      "<b>Council District %{customdata[0]}</b><br>" +
+      "Area: %{customdata[1]}<br>" +
+      ch + ": %{y:,}" +
+      "<extra></extra>",
   }));
   Plotly.newPlot("chart-g8", traces, {
-    ...layoutBase, barmode: "stack", xaxis: { title: "Council District" }, yaxis: { title: "Volume" },
+    margin: { l: 60, r: 20, t: 50, b: 90 },
+    font: { size: 11 },
+    barmode: "stack",
+    xaxis: {
+      title: { text: "Council District", standoff: 50 },
+      tickangle: -45,
+      automargin: true,
+    },
+    yaxis: { title: "Volume", automargin: true },
     legend: { orientation: "h", y: 1.15 },
   }, { responsive: true });
 }

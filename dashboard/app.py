@@ -145,9 +145,10 @@ def g11_map():
         params["districts"] = f["districts"]
     where_sql = " WHERE " + " AND ".join(where) if where else ""
     return jsonify(fetch(
-        f'SELECT council_district, avg_latitude, avg_longitude, '
-        f'total_volume, avg_resolution_hours, closure_rate, top_complaint_type '
-        f'FROM g11_geo_density{where_sql} ORDER BY total_volume DESC',
+        f'SELECT council_district, primary_community_board, avg_latitude, '
+        f'avg_longitude, total_volume, avg_resolution_hours, closure_rate, '
+        f'top_complaint_type FROM g11_geo_density{where_sql} '
+        f'ORDER BY total_volume DESC',
         params,
     ))
 
@@ -193,8 +194,8 @@ def g1_districts():
         params["districts"] = f["districts"]
     where_sql = " WHERE " + " AND ".join(where) if where else ""
     return jsonify(fetch(
-        f'SELECT council_district, total_volume, closed_volume, '
-        f'avg_resolution_hours, median_resolution_hours '
+        f'SELECT council_district, primary_community_board, total_volume, '
+        f'closed_volume, avg_resolution_hours, median_resolution_hours '
         f'FROM g1_district_performance{where_sql} '
         f'ORDER BY total_volume DESC LIMIT 20',
         params,
@@ -212,8 +213,8 @@ def g5_bottleneck():
         params["districts"] = f["districts"]
     where_sql = " WHERE " + " AND ".join(where) if where else ""
     return jsonify(fetch(
-        f'SELECT council_district, open_volume, closed_volume, '
-        f'open_to_closed_ratio, citywide_ratio, exceeds_citywide '
+        f'SELECT council_district, primary_community_board, open_volume, '
+        f'closed_volume, open_to_closed_ratio, citywide_ratio, exceeds_citywide '
         f'FROM g5_bottleneck_analysis{where_sql} '
         f'ORDER BY open_to_closed_ratio DESC LIMIT 20',
         params,
@@ -294,7 +295,8 @@ def g8_channels():
         params["districts"] = f["districts"]
     where_sql = " WHERE " + " AND ".join(where) if where else ""
     return jsonify(fetch(
-        f'SELECT council_district, open_data_channel_type, volume '
+        f'SELECT council_district, primary_community_board, '
+        f'open_data_channel_type, volume '
         f'FROM g8_channel_mix_by_district{where_sql} '
         f'ORDER BY council_district, volume DESC',
         params,

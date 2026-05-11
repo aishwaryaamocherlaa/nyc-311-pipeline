@@ -90,7 +90,21 @@ def load_silver(logger: logging.Logger) -> pd.DataFrame:
 
 
 # AGGREGATIONS (REQUIRED)
-
+def _primary_community_board_per_district(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    For each council_district, return the most common community_board value.
+    Used to enrich district-keyed Gold tables with a human-readable area name.
+    """
+    return (
+        df.dropna(subset=["council_district", "community_board"])
+        .groupby(["council_district", "community_board"])
+        .size()
+        .reset_index(name="ct")
+        .sort_values("ct", ascending=False)
+        .drop_duplicates("council_district")
+        [["council_district", "community_board"]]
+        .rename(columns={"community_board": "primary_community_board"})
+    )
 # REQUIREMENT: "District Performance: Average resolution time and total
 # volume per Council District."
 def build_g1_district_performance(df: pd.DataFrame) -> pd.DataFrame:
@@ -109,8 +123,13 @@ def build_g1_district_performance(df: pd.DataFrame) -> pd.DataFrame:
     result["council_district"] = result["council_district"].astype(int)
     result["avg_resolution_hours"] = result["avg_resolution_hours"].round(2)
     result["median_resolution_hours"] = result["median_resolution_hours"].round(2)
+    # Enrich with primary community board for display
+    result = result.merge(
+        _primary_community_board_per_district(df),
+        on="council_district",
+        how="left",
+    )
     return result
-
 
 # REQUIREMENT: "Complaint Distribution: A breakdown of the most frequent
 # complaint types citywide vs. district-specific trends."
@@ -190,12 +209,10 @@ def build_g5_bottleneck_analysis(df: pd.DataFrame) -> pd.DataFrame:
     """Districts with open/closed ratio above the city-wide average."""
     df_with_district = df.dropna(subset=["council_district"])
 
-    # Citywide 
     citywide_open = int((~df_with_district["is_closed"]).sum())
     citywide_closed = int(df_with_district["is_closed"].sum())
     citywide_ratio = citywide_open / citywide_closed if citywide_closed else float("nan")
 
-    # Per district
     per_district = (
         df_with_district.groupby("council_district", as_index=False)
         .agg(
@@ -211,9 +228,12 @@ def build_g5_bottleneck_analysis(df: pd.DataFrame) -> pd.DataFrame:
         per_district["open_to_closed_ratio"] > citywide_ratio
     )
     per_district["council_district"] = per_district["council_district"].astype(int)
-
+    per_district = per_district.merge(
+        _primary_community_board_per_district(df),
+        on="council_district",
+        how="left",
+    )
     return per_district.sort_values("open_to_closed_ratio", ascending=False)
-
 
 # ADDITIONAL AGGREGATIONS 
 
@@ -255,8 +275,12 @@ def build_g8_channel_mix(df: pd.DataFrame) -> pd.DataFrame:
         .agg(volume=("unique_key", "count"))
     )
     result["council_district"] = result["council_district"].astype(int)
+    result = result.merge(
+        _primary_community_board_per_district(df),
+        on="council_district",
+        how="left",
+    )
     return result.sort_values(["council_district", "volume"], ascending=[True, False])
-
 
 # Top zips per complaint type: sub-district hotspot identification.
 def build_g9_hotspot_zips(df: pd.DataFrame) -> pd.DataFrame:
@@ -307,7 +331,6 @@ def build_g11_geo_density(df: pd.DataFrame) -> pd.DataFrame:
             closed_volume=("is_closed", "sum"),
         )
     )
-    # Also surface the top complaint type per district (useful tooltip on hover)
     top_complaint = (
         df.dropna(subset=["council_district"])
         .groupby(["council_district", "complaint_type"])
@@ -322,8 +345,12 @@ def build_g11_geo_density(df: pd.DataFrame) -> pd.DataFrame:
     geo["council_district"] = geo["council_district"].astype(int)
     geo["avg_resolution_hours"] = geo["avg_resolution_hours"].round(2)
     geo["closure_rate"] = (geo["closed_volume"] / geo["total_volume"]).round(4)
+    geo = geo.merge(
+        _primary_community_board_per_district(df),
+        on="council_district",
+        how="left",
+    )
     return geo.sort_values("total_volume", ascending=False)
-
 
 # WRITEING GOLD
 

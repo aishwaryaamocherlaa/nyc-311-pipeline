@@ -17,39 +17,27 @@ into business-ready aggregations and a responsive dashboard.
 ## Architecture
 
 
-NYC Open Data API (SODA3)
-    │
-    ▼
-  BRONZE: Raw JSON, faithful to source.  ← Phase 1 (Paginated, audit-stamped)
-    │
-    ▼
-  SILVER: Cleaned, validated, typed.  ← Phase 2 (Partitioned Parquet)
-    │
-    ▼
-  GOLD: Business-ready aggregations.  ← Phase 3 (Loaded into PostgreSQL)
-    │
-    ▼
-  DASHBOARD: Interactive HTML dashboard. ← Phase 4
+NYC Open Data API (SODA3) ->   BRONZE: Raw JSON, faithful to source. Phase 1 (Paginated, audit-stamped) -> SILVER: Cleaned, validated, typed. Phase 2 (Partitioned Parquet) -> GOLD: Business-ready aggregations. Phase 3 (Loaded into PostgreSQL) -> DASHBOARD: Interactive HTML dashboard. ← Phase 4
 
 ## Project Structure
 
 nyc_311_pipeline/
-├── data/
-│   ├── bronze/        # Raw JSON ingestion output + manifest
-│   ├── silver/        # Cleaned Parquet (Phase 2)
-│   └── gold/          # Aggregated analytical tables (Phase 3)
-├── dashboard/         # HTML dashboard application 
-├── logs/              # Per-run structured logs
-├── src/               # Pipeline source code (one script per layer)
-│   └── ingest_bronze.py
-├── tests/             # Validation and sanity checks
-│   ├── test_api.py
-│   ├── test_fetch_page.py
-│   └── validate_bronze.py
-├── .env               # Local secrets (all gitignored)
-├── .gitignore
-├── requirements.txt
-└── README.md
+  data/
+    bronze/        # Raw JSON ingestion output + manifest
+    silver/        # Cleaned Parquet (Phase 2)
+  gold/          # Aggregated analytical tables (Phase 3)
+  dashboard/         # HTML dashboard application 
+  logs/              # Per-run structured logs
+  src/               # Pipeline source code (one script per layer)
+    ingest_bronze.py
+  tests/             # Validation and sanity checks
+    test_api.py
+    test_fetch_page.py
+    validate_bronze.py
+  .env               # Local secrets (all gitignored)
+  .gitignore
+  requirements.txt
+  README.md
 
 ## Phase 1: Data Ingestion (Bronze Layer) ✅
 

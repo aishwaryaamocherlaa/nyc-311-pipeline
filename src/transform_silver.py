@@ -50,7 +50,8 @@ COLUMNS_TO_KEEP = [
     # Where
     "borough",
     "council_district",
-    "incident_zip",                      # sub-district granularity
+    "community_board",
+    "incident_zip",                      
     "latitude",
     "longitude",
 
